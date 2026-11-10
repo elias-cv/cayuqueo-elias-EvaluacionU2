@@ -1,0 +1,88 @@
+1 Respuesta 
+class Prestamos(Base):
+    __tablename__ = 'prestamos'
+    __tableargs__ = (
+        CheckConstraint('fecha >= CURRENT_TIMESTAMP', name='check_fecha'),
+        CheckConstraint('cantidad > 0', name='check_cantidad')
+    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fecha: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
+    cantidad: Mapped[int] = mapped_column(Integer, nullable=False)
+    estado: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    equipo_id: Mapped[int] = mapped_column(ForeignKey('equipos.id'))
+    estudiante_id: Mapped[int] = mapped_column(ForeignKey('estudiantes.id'))
+    equipo: Mapped["Equipo"] = relationship("Equipo", back_populates="prestamos")
+    estudiante: Mapped["Estudiantes"] = relationship("Estudiantes", back_populates="prestamos")
+
+R: La clase prestamos esta en el archivo modelos.py tiene 4 atributos propios y matiene una relacion con las clases Estudiantes y equipos, con estudiante mantiene una relacion 1 a muchos, con Equipos tambien mantiene una relacion 1 a Muchos.
+
+2 Respuesta
+
+def crear_equipo(nombre: str, tipo: str, stock_disponible: int):
+    if not nombre or not tipo:
+        raise ValueError("El nombre y el tipo son obligatorios.")
+    if stock_disponible < 0:
+        raise ValueError("El stock disponible no puede ser negativo.")
+    with Session.begin() as session:
+        nuevo_equipo = Equipo(nombre=nombre, tipo=tipo, stock_disponible=stock_disponible)
+        session.add(nuevo_equipo)
+        return nuevo_equipo
+
+R: Esta funcion esta en crud_equipos.py y utiliza add() en la linea 13
+
+3 Respuesta
+
+def buscar_equipo_id(id_equipo: int):
+    with Session() as session:
+        equipo = session.get(Equipo, id_equipo)
+        if stock_disponible < 0:
+            raise ValueError("El stock disponible no puede ser negativo.")
+        if equipo is None:
+            raise ValueError("Equipo no encontrado")
+        return equipo
+
+R: Esta funcion obtiene los equipos por id, no utiliza filtrado por nombre o algun atributo, pero valida el stock para saber la disponibilidad del Equipo
+
+4 Respuesta
+def crear_prestamo(equipo_id: int, estudiante_id: int, cantidad: int):
+    if cantidad <= 0:
+        raise ValueError("La cantidad debe ser positiva")
+    with Session.begin() as session:
+        equipo = session.get(Equipo, equipo_id)
+        estudiante = session.get(Estudiantes, estudiante_id)
+        if not equipo:
+            raise ValueError(f"Equipo con ID {equipo_id} no encontrado.")
+        if not estudiante:
+            raise ValueError(f"Estudiante con ID {estudiante_id} no encontrado.")
+        if equipo.stock_disponible < cantidad:
+            raise ValueError(f"No hay suficiente stock disponible para el equipo {equipo.nombre}.")
+        prestamo = Prestamos(
+            fecha=datetime.now(),
+            cantidad=cantidad,
+            estado=True,
+            equipo=equipo,
+            estudiante=estudiante,
+        )
+        equipo.stock_disponible -= cantidad
+        session.add(prestamo)
+        return prestamo
+
+R: Esta funcion crea el prestamos pero antes de efectuarlo valida que stock no sea negativo y que stock no sea superior al disponible
+
+5 Respuesta
+
+def devolver_prestamo(prestamo_id: int):
+    with Session.begin() as session:
+        prestamo = session.get(Prestamos, prestamo_id)
+        if not prestamo:
+            raise ValueError(f"Préstamo con ID {prestamo_id} no encontrado.")
+        if prestamo.estado is False:
+            raise ValueError(f"El préstamo con ID {prestamo_id} ya ha sido devuelto.")
+        prestamo.estado = False
+        prestamo.equipo.stock_disponible += prestamo.cantidad
+        return prestamo
+
+R: Esta funcion se encarga de la devolucion verifica el estado del Prestamos, la existencia del prestamos y si todo se valida correctamente, agrega el producto devuelto a su respectivo stock
+
+
+
